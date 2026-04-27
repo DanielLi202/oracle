@@ -50,7 +50,22 @@ oracle --engine browser --browser-manual-login \
 
 ## Quick start
 
-### From source (this fork)
+### Recommended: install from this fork's release tarball
+
+Each release ships a prebuilt npm tarball plus SHA-1/SHA-256 checksums on the [Releases page](https://github.com/DanielLi202/oracle/releases/latest). Grab the latest `.tgz` and install globally:
+
+```bash
+VERSION=0.10.0
+curl -L -O "https://github.com/DanielLi202/oracle/releases/download/v${VERSION}/oracle-${VERSION}.tgz"
+curl -L -O "https://github.com/DanielLi202/oracle/releases/download/v${VERSION}/oracle-${VERSION}.tgz.sha256"
+shasum -a 256 -c "oracle-${VERSION}.tgz.sha256"   # verify download
+npm install -g "./oracle-${VERSION}.tgz"
+oracle --version                                  # should print 0.10.0+
+```
+
+Requires Node 22+. The macOS notifier inside the bundle is ad-hoc signed (this fork has no Apple Developer ID), so the first launch may need a right-click → Open in Finder; core CLI/browser/MCP features are unaffected.
+
+### Build from source
 
 ```bash
 git clone https://github.com/DanielLi202/oracle.git
@@ -60,7 +75,7 @@ npm link            # exposes the `oracle` and `oracle-mcp` commands globally
 oracle --version    # should print 0.10.0+
 ```
 
-Requires Node 22+ and pnpm. Use `npm unlink -g @steipete/oracle` to remove the link.
+Use `npm unlink -g @steipete/oracle` to remove the link.
 
 ### From upstream (no fork patches)
 
@@ -69,7 +84,7 @@ Homebrew: `brew install steipete/tap/oracle`
 
 Or use `npx -y @steipete/oracle …` (or pnpx). Note: these channels track [upstream](https://github.com/steipete/oracle) and do **not** include this fork's GPT-5.5 Pro updates.
 
-After `npm link` (this fork) the examples below use the bare `oracle` command. With the upstream npm package, swap each invocation for `npx -y @steipete/oracle …`.
+After installing this fork (tarball or `npm link`), the examples below use the bare `oracle` command. With the upstream npm package, swap each invocation for `npx -y @steipete/oracle …`.
 
 ```bash
 # Copy the bundle and paste into ChatGPT
