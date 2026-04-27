@@ -142,7 +142,6 @@ npx -y @steipete/oracle oracle-mcp   # or via the upstream npm package
 ```
 
 - Cursor setup (MCP): drop a `.cursor/mcp.json` like below, then pick “oracle” in Cursor’s MCP sources. See https://cursor.com/docs/context/mcp for UI steps.
-  [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=oracle&config=eyJjb21tYW5kIjoibnB4IC15IEBzdGVpcGV0ZS9vcmFjbGUgb3JhY2xlLW1jcCJ9)
 
 ```json
 {
@@ -308,12 +307,3 @@ oracle status --clear --hours 168
 - OpenAI/Azure/OpenRouter endpoints: [docs/openai-endpoints.md](docs/openai-endpoints.md), [docs/openrouter.md](docs/openrouter.md)
 - Manual smokes: [docs/manual-tests.md](docs/manual-tests.md)
 - Testing: [docs/testing.md](docs/testing.md)
-
-If you’re looking for an even more powerful context-management tool, check out https://repoprompt.com  
-Name inspired by: https://ampcode.com/news/oracle
-
-## More free stuff from steipete
-
-- ✂️ [Trimmy](https://trimmy.app) — “Paste once, run once.” Flatten multi-line shell snippets so they paste and run.
-- 🟦🟩 [CodexBar](https://codexbar.app) — Keep Codex token windows visible in your macOS menu bar.
-- 🧳 [MCPorter](https://mcporter.dev) — TypeScript toolkit + CLI for Model Context Protocol servers.
