@@ -5,17 +5,19 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@steipete/oracle"><img src="https://img.shields.io/npm/v/@steipete/oracle?style=for-the-badge&logo=npm&logoColor=white" alt="npm version"></a>
-  <a href="https://github.com/steipete/oracle/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/steipete/oracle/ci.yml?branch=main&style=for-the-badge&label=tests" alt="CI Status"></a>
-  <a href="https://github.com/steipete/oracle"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=for-the-badge" alt="Platforms"></a>
+  <a href="https://github.com/DanielLi202/oracle/releases/latest"><img src="https://img.shields.io/github/v/release/DanielLi202/oracle?style=for-the-badge&label=fork%20release" alt="Fork release"></a>
+  <a href="https://github.com/DanielLi202/oracle/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/DanielLi202/oracle/ci.yml?branch=main&style=for-the-badge&label=tests" alt="CI Status"></a>
+  <a href="https://github.com/DanielLi202/oracle"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=for-the-badge" alt="Platforms"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-Oracle bundles your prompt and files so another AI can answer with real context. It speaks GPT-5.4 Pro (default), GPT-5.4, GPT-5.1 Pro, GPT-5.1 Codex (API-only), GPT-5.1, GPT-5.2, Gemini 3.1 Pro (API-only), Gemini 3 Pro, Claude Sonnet 4.5, Claude Opus 4.1, and more—and it can ask one or multiple models in a single run. Browser automation is available; use `--browser-model-strategy current` to keep the active ChatGPT model (or `ignore` to skip the picker). API remains the most reliable path, and `--copy` is an easy manual fallback.
+> **Fork notice:** This is a community-maintained fork of [steipete/oracle](https://github.com/steipete/oracle) (upstream is no longer actively maintained). It cherry-picks selected upstream PRs — most recently [#141](https://github.com/steipete/oracle/pull/141) bringing GPT-5.5 Pro defaults — and ships from this repository as `v0.10.0+`. The published npm package `@steipete/oracle` still tracks upstream and does **not** include these fixes; use the [From source](#from-source-this-fork) instructions to run this fork.
+
+Oracle bundles your prompt and files so another AI can answer with real context. It speaks GPT-5.5 Pro (default), GPT-5.5, GPT-5.4 Pro, GPT-5.4, GPT-5.1 Pro, GPT-5.1 Codex (API-only), GPT-5.1, GPT-5.2, Gemini 3.1 Pro (API-only), Gemini 3 Pro, Claude Sonnet 4.5, Claude Opus 4.1, and more—and it can ask one or multiple models in a single run. Browser automation is available; use `--browser-model-strategy current` to keep the active ChatGPT model (or `ignore` to skip the picker). API remains the most reliable path, and `--copy` is an easy manual fallback.
 
 ## Setting up (macOS Browser Mode)
 
-Browser mode lets you use GPT-5.4 Pro without any API keys — it automates your Chrome browser directly.
+Browser mode lets you use GPT-5.5 Pro without any API keys — it automates your Chrome browser directly.
 
 ### First-time login
 
@@ -48,43 +50,59 @@ oracle --engine browser --browser-manual-login \
 
 ## Quick start
 
+### From source (this fork)
+
+```bash
+git clone https://github.com/DanielLi202/oracle.git
+cd oracle
+pnpm install        # runs build automatically via the prepare script
+npm link            # exposes the `oracle` and `oracle-mcp` commands globally
+oracle --version    # should print 0.10.0+
+```
+
+Requires Node 22+ and pnpm. Use `npm unlink -g @steipete/oracle` to remove the link.
+
+### From upstream (no fork patches)
+
 Install globally: `npm install -g @steipete/oracle`
 Homebrew: `brew install steipete/tap/oracle`
 
-Requires Node 22+. Or use `npx -y @steipete/oracle …` (or pnpx).
+Or use `npx -y @steipete/oracle …` (or pnpx). Note: these channels track [upstream](https://github.com/steipete/oracle) and do **not** include this fork's GPT-5.5 Pro updates.
+
+After `npm link` (this fork) the examples below use the bare `oracle` command. With the upstream npm package, swap each invocation for `npx -y @steipete/oracle …`.
 
 ```bash
 # Copy the bundle and paste into ChatGPT
-npx -y @steipete/oracle --render --copy -p "Review the TS data layer for schema drift" --file "src/**/*.ts,*/*.test.ts"
+oracle --render --copy -p "Review the TS data layer for schema drift" --file "src/**/*.ts,*/*.test.ts"
 
 # Minimal API run (expects OPENAI_API_KEY in your env)
-npx -y @steipete/oracle -p "Write a concise architecture note for the storage adapters" --file src/storage/README.md
+oracle -p "Write a concise architecture note for the storage adapters" --file src/storage/README.md
 
 # Multi-model API run
-npx -y @steipete/oracle -p "Cross-check the data layer assumptions" --models gpt-5.1-pro,gemini-3-pro --file "src/**/*.ts"
+oracle -p "Cross-check the data layer assumptions" --models gpt-5.5-pro,gemini-3-pro --file "src/**/*.ts"
 
 # Follow up from an existing OpenAI/Azure session id
-npx -y @steipete/oracle --engine api --model gpt-5.2-pro --followup release-readiness-audit --followup-model gpt-5.2-pro -p "Re-evaluate with this new context" --file "src/**/*.ts"
+oracle --engine api --model gpt-5.5-pro --followup release-readiness-audit --followup-model gpt-5.5-pro -p "Re-evaluate with this new context" --file "src/**/*.ts"
 
 # Follow up directly from an OpenAI Responses API id
-npx -y @steipete/oracle --engine api --model gpt-5.2-pro --followup resp_abc1234567890 -p "Continue from this response" --file docs/notes.md
+oracle --engine api --model gpt-5.5-pro --followup resp_abc1234567890 -p "Continue from this response" --file docs/notes.md
 
 # Preview without spending tokens
-npx -y @steipete/oracle --dry-run summary -p "Check release notes" --file docs/release-notes.md
+oracle --dry-run summary -p "Check release notes" --file docs/release-notes.md
 
-# Browser run (no API key, will open ChatGPT)
-npx -y @steipete/oracle --engine browser -p "Walk through the UI smoke test" --file "src/**/*.ts"
+# Browser run (no API key, will open ChatGPT — defaults to GPT-5.5 Pro)
+oracle --engine browser -p "Walk through the UI smoke test" --file "src/**/*.ts"
 
 # Gemini browser mode (no API key; uses Chrome cookies from gemini.google.com)
-npx -y @steipete/oracle --engine browser --model gemini-3-pro --prompt "a cute robot holding a banana" --generate-image out.jpg --aspect 1:1
+oracle --engine browser --model gemini-3-pro --prompt "a cute robot holding a banana" --generate-image out.jpg --aspect 1:1
 
 # Sessions (list and replay)
-npx -y @steipete/oracle status --hours 72
-npx -y @steipete/oracle session <id> --render
-npx -y @steipete/oracle restart <id>
+oracle status --hours 72
+oracle session <id> --render
+oracle restart <id>
 
 # TUI (interactive, only for humans)
-npx -y @steipete/oracle tui
+oracle tui
 ```
 
 Engine auto-picks API when `OPENAI_API_KEY` is set, otherwise browser; browser is stable on macOS and works on Linux and Windows. On Linux pass `--browser-chrome-path/--browser-cookie-path` if detection fails; on Windows prefer `--browser-manual-login` or inline cookies if decryption is blocked.
@@ -101,8 +119,8 @@ Engine auto-picks API when `OPENAI_API_KEY` is set, otherwise browser; browser i
 - Remote browser service: `oracle serve` on a signed-in host; clients use `--remote-host/--remote-token`.
 - AGENTS.md/CLAUDE.md:
   ```
-  - Oracle bundles a prompt plus the right files so another AI (GPT 5 Pro + more) can answer. Use when stuck/bugs/reviewing.
-  - Run `npx -y @steipete/oracle --help` once per session before first use.
+  - Oracle bundles a prompt plus the right files so another AI (GPT-5.5 Pro + more) can answer. Use when stuck/bugs/reviewing.
+  - Run `oracle --help` once per session before first use (or `npx -y @steipete/oracle --help` on the upstream package).
   ```
 - Tip: set `browser.chatgptUrl` in config (or `--chatgpt-url`) to a dedicated ChatGPT project folder so browser runs don’t clutter your main history.
 
@@ -119,7 +137,8 @@ Engine auto-picks API when `OPENAI_API_KEY` is set, otherwise browser; browser i
 - Configure clients via [steipete/mcporter](https://github.com/steipete/mcporter) or `.mcp.json`; see [docs/mcp.md](docs/mcp.md) for connection examples.
 
 ```bash
-npx -y @steipete/oracle oracle-mcp
+oracle-mcp                       # this fork after `npm link`
+npx -y @steipete/oracle oracle-mcp   # or via the upstream npm package
 ```
 
 - Cursor setup (MCP): drop a `.cursor/mcp.json` like below, then pick “oracle” in Cursor’s MCP sources. See https://cursor.com/docs/context/mcp for UI steps.
@@ -153,9 +172,9 @@ Use `--followup` to continue an existing OpenAI/Azure Responses API run with add
 ```bash
 oracle \
   --engine api \
-  --model gpt-5.2-pro \
+  --model gpt-5.5-pro \
   --followup <existing-session-id-or-resp_id> \
-  --followup-model gpt-5.2-pro \
+  --followup-model gpt-5.5-pro \
   --slug "my-followup-run" \
   --wait \
   -p "Follow-up: re-evaluate the previous recommendation with the attached files." \
@@ -171,10 +190,10 @@ Custom `--base-url` providers plus Gemini/Claude API runs are excluded here beca
 ```text
 Recent Sessions
 Status    Model         Mode    Timestamp           Chars    Cost  Slug
-completed gpt-5.2-pro   api     03/01/2026 09:00 AM  1800  $2.110  architecture-review-parent
-completed gpt-5.2-pro   api     03/01/2026 09:14 AM  2200  $2.980  ├─ architecture-review-followup
-running   gpt-5.2-pro   api     03/01/2026 09:22 AM  1400       -  │  └─ architecture-review-implementation-pass
-pending   gpt-5.2-pro   api     03/01/2026 09:25 AM   900       -  └─ architecture-review-risk-check
+completed gpt-5.5-pro   api     03/01/2026 09:00 AM  1800  $2.110  architecture-review-parent
+completed gpt-5.5-pro   api     03/01/2026 09:14 AM  2200  $2.980  ├─ architecture-review-followup
+running   gpt-5.5-pro   api     03/01/2026 09:22 AM  1400       -  │  └─ architecture-review-implementation-pass
+pending   gpt-5.5-pro   api     03/01/2026 09:25 AM   900       -  └─ architecture-review-risk-check
 ```
 
 ## Browser auto-reattach (long Pro runs)
@@ -203,7 +222,7 @@ oracle --engine browser \
 | `-p, --prompt <text>`                                           | Required prompt.                                                                                                                                                                                                                                                                                                |
 | `-f, --file <paths...>`                                         | Attach files/dirs (globs + `!` excludes).                                                                                                                                                                                                                                                                       |
 | `-e, --engine <api\|browser>`                                   | Choose API or browser (browser is experimental).                                                                                                                                                                                                                                                                |
-| `-m, --model <name>`                                            | Built-ins (`gpt-5.4-pro` default, `gpt-5.4`, `gpt-5.1-pro`, `gpt-5-pro`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.2`, `gpt-5.2-instant`, `gpt-5.2-pro`, `gemini-3.1-pro` API-only, `gemini-3-pro`, `claude-4.5-sonnet`, `claude-4.1-opus`) plus any OpenRouter id (e.g., `minimax/minimax-m2`, `openai/gpt-4o-mini`). |
+| `-m, --model <name>`                                            | Built-ins (`gpt-5.5-pro` default, `gpt-5.5`, `gpt-5.4-pro`, `gpt-5.4`, `gpt-5.1-pro`, `gpt-5-pro`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.2`, `gpt-5.2-instant`, `gpt-5.2-pro`, `gemini-3.1-pro` API-only, `gemini-3-pro`, `claude-4.5-sonnet`, `claude-4.1-opus`) plus any OpenRouter id (e.g., `minimax/minimax-m2`, `openai/gpt-4o-mini`). |
 | `--models <list>`                                               | Comma-separated API models (mix built-ins and OpenRouter ids) for multi-model runs.                                                                                                                                                                                                                             |
 | `--followup <sessionId\|responseId>`                            | Continue an OpenAI/Azure Responses API run from a stored oracle session or `resp_...` response id.                                                                                                                                                                                                              |
 | `--followup-model <model>`                                      | For multi-model OpenAI/Azure parent sessions, choose which model response to continue from.                                                                                                                                                                                                                     |
@@ -241,7 +260,7 @@ Put defaults in `~/.oracle/config.json` (JSON5). Example:
 
 ```json5
 {
-  model: "gpt-5.4-pro",
+  model: "gpt-5.5-pro",
   engine: "api",
   filesReport: true,
   browser: {
