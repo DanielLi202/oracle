@@ -69,10 +69,6 @@ function getBrowserAutomationStage(error: unknown): string | null {
   return (error.details as { stage?: string } | undefined)?.stage ?? null;
 }
 
-function isCloudflareChallengeError(error: unknown): error is BrowserAutomationError {
-  return getBrowserAutomationStage(error) === "cloudflare-challenge";
-}
-
 function shouldPreserveBrowserOnError(error: unknown, headless: boolean): boolean {
   if (headless) return false;
   const stage = getBrowserAutomationStage(error);
