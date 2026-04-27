@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.10.0 — 2026-04-27
+
+### Changed
+
+- OpenAI: roll the default Pro target from `gpt-5.4-pro` to `gpt-5.5-pro`, add explicit `gpt-5.5` and `gpt-5.5-pro` model support, map browser default Pro selection to ChatGPT `GPT-5.5 Pro`, and refresh CLI/help/test fixtures accordingly. Cherry-picked from upstream [steipete/oracle#141](https://github.com/steipete/oracle/pull/141), thanks @thomasbek3.
+
+### Fixed
+
+- Browser: drop the unused `isCloudflareChallengeError` helper introduced alongside the GPT-5.5 update so the new oxlint pipeline stays clean.
+
 ## 0.9.0 — 2026-03-08
 
 ### Changed
