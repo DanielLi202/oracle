@@ -77,6 +77,19 @@ oracle --version    # should print 0.10.0+
 
 Use `npm unlink -g @steipete/oracle` to remove the link.
 
+#### Cutting a new release
+
+After bumping `package.json` and updating `CHANGELOG.md`, the helper script in [scripts/release.sh](scripts/release.sh) handles the rest:
+
+```bash
+bash scripts/release.sh all          # gates -> notifier -> tarball -> tag -> smoke -> publish
+bash scripts/release.sh artifacts    # just rebuild the .tgz + checksums
+DRY_RUN=1 bash scripts/release.sh publish   # preview pushes / gh commands
+SKIP_NOTIFIER=1 bash scripts/release.sh artifacts   # Linux/CI without macOS toolchain
+```
+
+The script runs lint/test/build, ad-hoc-signs `OracleNotifier.app`, packs `oracle-X.Y.Z.tgz` (+ `.sha1` / `.sha256`), tags `vX.Y.Z`, smoke-installs the tarball into a temp `npm` prefix, then pushes `main`+tag and uploads the three assets to the matching GitHub Release.
+
 ### From upstream (no fork patches)
 
 Install globally: `npm install -g @steipete/oracle`

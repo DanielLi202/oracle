@@ -1,97 +1,146 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Oracle release helper (npm)
-# Phases: gates | artifacts | publish | smoke | tag | all
-# Defaults to using the guardrail runner (MCP_RUNNER or ./runner).
+# Oracle fork release helper (DanielLi202/oracle).
+#
+# Phases: gates | notifier | artifacts | tag | publish | smoke | all
+#   gates      pnpm lint + test + build
+#   notifier   ad-hoc sign + build vendor/oracle-notifier/OracleNotifier.app
+#              (override with CODESIGN_ID + APP_STORE_CONNECT_* for real signing)
+#   artifacts  npm pack -> oracle-X.Y.Z.tgz + sha1 + sha256
+#   tag        git tag vX.Y.Z (skipped if it already exists)
+#   publish    git push origin main + the tag, then create/upload assets to
+#              the GitHub release via `gh`
+#   smoke      install the freshly built tarball into an isolated npm prefix
+#              and run `oracle --version`
+#
+# Environment:
+#   VERSION         override version (default = package.json)
+#   GH_REPO         GitHub repo slug (default DanielLi202/oracle)
+#   SKIP_NOTIFIER=1 skip the macOS notifier build (Linux/CI without Xcode)
+#   DRY_RUN=1       print git push / gh commands instead of running them
 
-RUNNER="${MCP_RUNNER:-./runner}"
-VERSION="${VERSION:-$(node -p "require('./package.json').version")}" 
+cd "$(git rev-parse --show-toplevel)"
 
-if [[ "${CODEX_MANAGED_BY_NPM:-}" == "1" ]]; then
-  export NPM_CONFIG_PROGRESS=false
-  export npm_config_progress=false
-fi
+VERSION="${VERSION:-$(node -p "require('./package.json').version")}"
+GH_REPO="${GH_REPO:-DanielLi202/oracle}"
+TGZ="oracle-${VERSION}.tgz"
+TAG="v${VERSION}"
 
-banner() { printf "\n==== %s ====" "$1"; printf "\n"; }
-run() { echo ">> $*"; "$@"; }
+banner() { printf "\n==== %s ====\n" "$1"; }
+run()    { echo ">> $*"; "$@"; }
+maybe_run() {
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo "DRY_RUN >> $*"
+  else
+    run "$@"
+  fi
+}
 
 phase_gates() {
-  banner "Gates (check/lint/test/build)"
-  run "$RUNNER" pnpm run check
-  run "$RUNNER" pnpm run lint
-  run "$RUNNER" pnpm run test
-  run "$RUNNER" pnpm run build
+  banner "Gates: lint + test + build"
+  run pnpm run lint
+  run pnpm run test
+  run pnpm run build
+}
+
+phase_notifier() {
+  if [[ "${SKIP_NOTIFIER:-0}" == "1" ]]; then
+    echo "SKIP_NOTIFIER=1 -> skipping OracleNotifier.app build"
+    return
+  fi
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    echo "Not on macOS -> skipping OracleNotifier.app build"
+    return
+  fi
+  banner "Build vendor/oracle-notifier/OracleNotifier.app"
+  # Default to ad-hoc signing for the fork. Set CODESIGN_ID + APP_STORE_CONNECT_*
+  # in the environment to use a real Developer ID + notarization.
+  CODESIGN_ID="${CODESIGN_ID:--}" run bash vendor/oracle-notifier/build-notifier.sh
 }
 
 phase_artifacts() {
-  banner "Artifacts (npm pack + checksums)"
-  run "$RUNNER" pnpm run build
-  run "$RUNNER" npm pack --pack-destination /tmp
+  banner "Artifacts: npm pack + checksums (v${VERSION})"
+  run pnpm run build
+  rm -f "$TGZ" "$TGZ.sha1" "$TGZ.sha256" /tmp/steipete-oracle-*.tgz
+  run npm pack --pack-destination /tmp >/dev/null
 
-  # npm pack tarballs are not consistent for scoped packages:
-  # - @scope/name -> scope-name-x.y.z.tgz
-  # - name        -> name-x.y.z.tgz
   local packed
   packed=$(ls -1 "/tmp/"*"${VERSION}.tgz" 2>/dev/null | head -n1 || true)
-  if [[ -z "${packed:-}" ]]; then
-    echo "No tgz found in /tmp after npm pack" >&2
+  if [[ -z "$packed" ]]; then
+    echo "No tarball produced by npm pack" >&2
     exit 1
   fi
+  mv "$packed" "$TGZ"
 
-  local tgz="oracle-${VERSION}.tgz"
-  mv "$packed" "$tgz"
-  run shasum "$tgz" > "${tgz}.sha1"
-  run shasum -a 256 "$tgz" > "${tgz}.sha256"
-}
-
-phase_publish() {
-  banner "Publish to npm"
-  run "$RUNNER" pnpm publish --tag latest --access public
-  run "$RUNNER" npm view @steipete/oracle version
-  run "$RUNNER" npm view @steipete/oracle time
-}
-
-phase_smoke() {
-  banner "Smoke test in empty dir"
-  local tmp=/tmp/oracle-empty
-  rm -rf "$tmp" && mkdir -p "$tmp"
-  ( cd "$tmp" && npx -y @steipete/oracle@"$VERSION" "Smoke from empty dir" --dry-run )
+  shasum "$TGZ"        > "$TGZ.sha1"
+  shasum -a 256 "$TGZ" > "$TGZ.sha256"
+  ls -lh "$TGZ" "$TGZ.sha1" "$TGZ.sha256"
 }
 
 phase_tag() {
-  banner "Tag and push"
-  git tag "v${VERSION}"
-  git push --tags
+  banner "Tag $TAG"
+  if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+    echo "Tag $TAG already exists locally -> skipping"
+  else
+    run git tag -a "$TAG" -m "Release $VERSION"
+  fi
+}
+
+phase_publish() {
+  banner "Publish $TAG to $GH_REPO"
+  maybe_run git push origin main
+  maybe_run git push origin "$TAG"
+
+  if [[ "${DRY_RUN:-0}" == "1" ]]; then
+    echo "DRY_RUN >> gh release create/upload would run here for $TAG"
+    return
+  fi
+
+  if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+    echo "Release $TAG already exists -> uploading assets (--clobber)"
+    run gh release upload "$TAG" --repo "$GH_REPO" --clobber \
+      "$TGZ" "$TGZ.sha1" "$TGZ.sha256"
+  else
+    run gh release create "$TAG" --repo "$GH_REPO" \
+      --title "$TAG" --generate-notes \
+      "$TGZ" "$TGZ.sha1" "$TGZ.sha256"
+  fi
+}
+
+phase_smoke() {
+  banner "Smoke test: install $TGZ into a clean npm prefix"
+  local prefix
+  prefix=$(mktemp -d)
+  (
+    npm install -g --prefix "$prefix" "./$TGZ" >/dev/null
+    "$prefix/bin/oracle" --version
+  )
+  rm -rf "$prefix"
 }
 
 usage() {
-  cat <<'EOF'
-Usage: scripts/release.sh [phase]
-
-Phases (run individually or all):
-  gates      pnpm check, lint, test, build
-  artifacts  npm pack + sha1/sha256
-  publish    pnpm publish --tag latest --access public, verify npm view
-  smoke      empty-dir npx @steipete/oracle@<version> --dry-run
-  tag        git tag v<version> && push tags
-  all        run everything in order
-
-Environment:
-  MCP_RUNNER (default ./runner) - guardrail wrapper
-  VERSION    (default from package.json)
-EOF
+  sed -n '3,21p' "$0"
 }
 
 main() {
   local phase="${1:-all}"
   case "$phase" in
-    gates) phase_gates ;;
+    gates)     phase_gates ;;
+    notifier)  phase_notifier ;;
     artifacts) phase_artifacts ;;
-    publish) phase_publish ;;
-    smoke) phase_smoke ;;
-    tag) phase_tag ;;
-    all) phase_gates; phase_artifacts; phase_publish; phase_smoke; phase_tag ;;
+    tag)       phase_tag ;;
+    publish)   phase_publish ;;
+    smoke)     phase_smoke ;;
+    all)
+      phase_gates
+      phase_notifier
+      phase_artifacts
+      phase_tag
+      phase_smoke
+      phase_publish
+      ;;
+    -h|--help|help) usage ;;
     *) usage; exit 1 ;;
   esac
 }
